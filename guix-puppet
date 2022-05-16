@@ -1,0 +1,22 @@
+#!/usr/bin/expect -f
+
+set timeout -1
+
+spawn /tmp/guix-install.sh
+
+expect "Press return to continue..."
+
+send -- "\r"
+
+expect {
+    "Would you like me to fetch it for you? (yes/no) " {
+        send -- "yes\r"
+        exp_continue
+    }
+    "Permit downloading pre-built package binaries from the project's build farm? (yes/no) " {
+        send -- "yes\r"
+        exit
+    }
+}
+
+expect eof

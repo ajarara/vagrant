@@ -76,6 +76,16 @@ Vagrant.configure("2") do |config|
   # start off the puppet to  install guix 
   config.vm.provision "shell", path: "guix-puppet"  
 
+
+  config.vm.provision "shell", inline: <<-SHELL
+    # kind of surprised we have to do this, we went through the guix-install script.
+    guix archive --authorize < /var/guix/profiles/per-user/root/current-guix/share/guix/berlin.guix.gnu.org.pub
+    guix archive --authorize < /var/guix/profiles/per-user/root/current-guix/share/guix/ci.guix.gnu.org.pub
+    guix archive --authorize < /var/guix/profiles/per-user/root/current-guix/share/guix/ci.guix.info.pub
+
+    guix pull
+  SHELL
+
   config.vm.provider :virtualbox do |vb|
 
     # adopted from https://github.com/Yubico/yubico-piv-tool/blob/master/vagrant/development/Vagrantfile#L25-L40

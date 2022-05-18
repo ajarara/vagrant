@@ -84,6 +84,12 @@ Vagrant.configure("2") do |config|
     guix archive --authorize < /var/guix/profiles/per-user/root/current-guix/share/guix/ci.guix.info.pub
 
     guix pull
+
+    echo <<EOF >> /home/vagrant/.profile
+GUIX_PROFILE="/home/vagrant/.config/guix/current"
+. "$GUIX_PROFILE/etc/profile"
+EOF
+
   SHELL
 
   config.vm.provider :virtualbox do |vb|

@@ -92,8 +92,23 @@ EOF
 
   SHELL
 
-  config.vm.provider :virtualbox do |vb|
+  # for yubikey support, use fedora's pcscd -- the guix one doesn't pick up ccid on foreign distros
+  config.vm.provision "shell", inline: <<-SHELL
+    dnf install -y ccid
+    # https://github.com/LudovicRousseau/PCSC/blob/615160ff2f1e6f0f0ee324f7442b0068552d0068/doc/README.polkit
+    mkdir -p /usr/share/polkit-1/rules.d/
+    echo <<EOF >> /usr/share/polkit-1/rules.d/vagrant.js
+polkit.addRule(function(action, subject) {
+    if (action.id == "org.debian.pcsc-lite.access_pcsc" &&
+        subject.user == "vagrant") {
+            return polkit.Result.YES;
+    }
+});
+EOF
+  pcscd
+  SHELL
 
+  config.vm.provider :virtualbox do |vb|
     # adopted from https://github.com/Yubico/yubico-piv-tool/blob/master/vagrant/development/Vagrantfile#L25-L40
     FILTER_NAME="YubiKey 5"
     MANUFACTURER="Yubico"

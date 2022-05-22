@@ -83,14 +83,16 @@ Vagrant.configure("2") do |config|
     guix archive --authorize < /var/guix/profiles/per-user/root/current-guix/share/guix/ci.guix.gnu.org.pub
     guix archive --authorize < /var/guix/profiles/per-user/root/current-guix/share/guix/ci.guix.info.pub
 
-    guix pull
+    # guix pull
 
-    cat <<EOF >> /home/vagrant/.profile
+    cat <<EOF > /home/vagrant/.profile
 GUIX_PROFILE="/home/vagrant/.config/guix/current"
 . "$GUIX_PROFILE/etc/profile"
 EOF
-
+   chown vagrant:vagrant /home/vagrant/.profile
   SHELL
+
+  config.vm.synced_folder "/Users/ajarara/home/", "/home/vagrant/"
 
   # for gpg
   config.vm.provision "shell", run: 'always', inline: <<-SHELL
@@ -138,14 +140,14 @@ EOF
     chown -R vagrant:vagrant /home/vagrant/.gnupg
   SHELL
 
-  config.vm.provision "shell", run: 'always', inline: <<-SHELL
-    cat <<EOF > /home/vagrant/.profile
-gpg-connect-agent reloadagent /bye
-sudo pkill ssh-agent
-eval \`ssh-agent\`
-EOF
-    chown vagrant:vagrant /home/vagrant/.profile
-  SHELL
+#   config.vm.provision "shell", run: 'always', inline: <<-SHELL
+#     cat <<EOF > /home/vagrant/.profile
+# gpg-connect-agent reloadagent /bye
+# sudo pkill ssh-agent
+# eval \`ssh-agent\`
+# EOF
+#     chown vagrant:vagrant /home/vagrant/.profile
+#   SHELL
 
   config.vm.provider :virtualbox do |vb|
     # adopted from https://github.com/Yubico/yubico-piv-tool/blob/master/vagrant/development/Vagrantfile#L25-L40

@@ -83,9 +83,7 @@ Vagrant.configure("2") do |config|
     guix archive --authorize < /var/guix/profiles/per-user/root/current-guix/share/guix/ci.guix.gnu.org.pub
     guix archive --authorize < /var/guix/profiles/per-user/root/current-guix/share/guix/ci.guix.info.pub
 
-    # guix pull
-
-    cat <<EOF > /home/vagrant/.profile
+    cat <<EOF >> /home/vagrant/.profile
 GUIX_PROFILE="/home/vagrant/.config/guix/current"
 . "$GUIX_PROFILE/etc/profile"
 EOF

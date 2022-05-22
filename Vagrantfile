@@ -85,27 +85,66 @@ Vagrant.configure("2") do |config|
 
     guix pull
 
-    echo <<EOF >> /home/vagrant/.profile
+    cat <<EOF >> /home/vagrant/.profile
 GUIX_PROFILE="/home/vagrant/.config/guix/current"
 . "$GUIX_PROFILE/etc/profile"
 EOF
 
   SHELL
 
-  # for yubikey support, use fedora's pcscd -- the guix one doesn't pick up ccid on foreign distros
-  config.vm.provision "shell", inline: <<-SHELL
-    dnf install -y ccid
+  # for gpg
+  config.vm.provision "shell", run: 'always', inline: <<-SHELL
     # https://github.com/LudovicRousseau/PCSC/blob/615160ff2f1e6f0f0ee324f7442b0068552d0068/doc/README.polkit
     mkdir -p /usr/share/polkit-1/rules.d/
-    echo <<EOF >> /usr/share/polkit-1/rules.d/vagrant.js
+    cat <<EOF > /usr/share/polkit-1/rules.d/01-yubikey-polkit.rules
 polkit.addRule(function(action, subject) {
-    if (action.id == "org.debian.pcsc-lite.access_pcsc" &&
-        subject.user == "vagrant") {
-            return polkit.Result.YES;
+    if (action.id == "org.debian.pcsc-lite.access_pcsc") {
+        return polkit.Result.YES;
+    }
+    if (action.id == "org.debian.pcsc-lite.access_card") {
+        return polkit.Result.YES;
     }
 });
 EOF
-  pcscd
+  SHELL
+
+  # for ssh
+  config.vm.provision "shell", run: 'always', inline: <<-SHELL
+    mkdir -p /etc/udev/rules.d
+    cat <<EOF > /etc/udev/rules.d/01-yubikey-udev.rules
+# this udev file should be used with udev 188 and newer
+ACTION!="add|change", GOTO="u2f_end"
+
+# Yubico YubiKey
+KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1050", ATTRS{idProduct}=="0113|0114|0115|0116|0120|0121|0200|0402|0403|0406|0407|0410", TAG+="uaccess", GROUP="vagrant", MODE="0660"
+
+LABEL="u2f_end"
+EOF
+  udevadm trigger
+  SHELL
+
+  config.vm.provision "shell", inline: <<-SHELL
+    dnf install -y ccid
+    systemctl enable pcsc-lite
+  SHELL
+
+  config.vm.provision "shell", run: 'always', inline: <<-SHELL
+    systemctl restart pcscd
+  SHELL
+
+  config.vm.provision "shell", run: 'always', inline: <<-SHELL
+    mkdir -p /home/vagrant/.gnupg/
+    echo "pinentry-program /usr/bin/pinentry-tty" > /home/vagrant/.gnupg/gpg-agent.conf
+    chown -R vagrant:vagrant /home/vagrant/.gnupg
+  SHELL
+
+  config.vm.provision "shell", run: 'always', inline: <<-SHELL
+    cat <<EOF > /home/vagrant/.profile
+gpg-connect-agent reloadagent /bye
+sudo pkill ssh-agent
+eval \`ssh-agent\`
+EOF
+    chown vagrant:vagrant /home/vagrant/.profile
   SHELL
 
   config.vm.provider :virtualbox do |vb|

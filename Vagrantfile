@@ -83,14 +83,26 @@ Vagrant.configure("2") do |config|
     guix archive --authorize < /var/guix/profiles/per-user/root/current-guix/share/guix/ci.guix.gnu.org.pub
     guix archive --authorize < /var/guix/profiles/per-user/root/current-guix/share/guix/ci.guix.info.pub
 
-    cat <<EOF >> /home/vagrant/.profile
-GUIX_PROFILE="/home/vagrant/.config/guix/current"
-. "$GUIX_PROFILE/etc/profile"
-EOF
-   chown vagrant:vagrant /home/vagrant/.profile
+#     cat <<EOF >> /home/vagrant/.profile
+# GUIX_PROFILE="/home/vagrant/.config/guix/current"
+# . "$GUIX_PROFILE/etc/profile"
+# EOF
+   # chown vagrant:vagrant /home/vagrant/.profile
   SHELL
 
-  config.vm.synced_folder "/Users/ajarara/home/", "/home/vagrant/"
+  
+  config.vm.synced_folder "/Users/ajarara/home/", "/home/vagrant/", automount: true
+
+  # to allow us to use direct mounts (flexible storage), we need to have a deterministic host key
+  # so we use the insecure private key.
+  # this _looks_ like a no-op, but because of the way vagrant defers shell provisioning we do this
+  # change after the mount
+  config.ssh.insert_key = false
+  config.vm.provision "shell", inline: <<-SHELL
+    cat <<EOF > /home/vagrant/.ssh/authorized_keys
+ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEA6NF8iallvQVp22WDkTkyrtvp9eWW6A8YVr+kz4TjGYe7gHzIw+niNltGEFHzD8+v1I2YJ6oXevct1YeS0o9HZyN1Q9qgCgzUFtdOKLv6IedplqoPkcmF0aYet2PkEDo3MlTBckFXPITAMzF8dJSIFo9D8HfdOV0IAdx4O7PtixWKn5y2hMNG0zQPyUecp4pzC6kivAIhyfHilFR61RGL+GPXQ2MWZWFYbAGjyiYJnAmCP3NOTd0jMZEnDkbUvxhMmBYSdETk1rRgm+R4LOzFUGaHqHDLKLX+FIPKcF96hrucXzcWyLbIbEgE98OHlnVYCzRdK8jlqm8tehUc9c9WhQ== vagrant insecure public key
+EOF
+  SHELL
 
   # for gpg
   config.vm.provision "shell", run: 'always', inline: <<-SHELL
@@ -126,10 +138,6 @@ EOF
   config.vm.provision "shell", inline: <<-SHELL
     dnf install -y ccid
     systemctl enable pcscd
-  SHELL
-
-  config.vm.provision "shell", run: 'always', inline: <<-SHELL
-    systemctl restart pcscd
   SHELL
 
   config.vm.provision "shell", run: 'always', inline: <<-SHELL
